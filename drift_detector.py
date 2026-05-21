@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-MECM Configuration Drift Detector
-Author: Jason Ray (M-Endymion)
+MECM Configuration Drift Detector - Enhanced Version
 """
 
 import json
@@ -17,10 +16,10 @@ def load_baseline():
         with open(baseline_path) as f:
             return json.load(f)
     return {
-        "power_plan": "Balanced",
-        "firewall_enabled": True,
         "min_disk_gb": 25,
-        "antivirus_enabled": True
+        "max_memory_percent": 85,
+        "mecm_installed": True,
+        "power_plan": "Balanced"
     }
 
 def check_drift(client_data, baseline):
@@ -31,27 +30,23 @@ def check_drift(client_data, baseline):
     mecm = client_data.get("mecm", {})
 
     checks = [
-        ("Power Plan", system.get("power_plan"), baseline.get("power_plan")),
-        ("Firewall Enabled", system.get("firewall_enabled"), baseline.get("firewall_enabled")),
-        ("Disk Free (GB)", disk.get("free_gb"), baseline.get("min_disk_gb")),
-        ("MECM Client Installed", mecm.get("installed"), True),
-        ("Memory Usage %", memory.get("percent_used"), "< 85"),
+        ("Disk Free Space", disk.get("free_gb"), baseline.get("min_disk_gb"), "GB", lambda a, e: a >= e),
+        ("Memory Usage", memory.get("percent_used"), baseline.get("max_memory_percent"), "%", lambda a, e: a <= e),
+        ("MECM Client", mecm.get("installed"), baseline.get("mecm_installed"), "", lambda a, e: a == e),
     ]
 
-    for name, actual, expected in checks:
+    for name, actual, expected, unit, compare_func in checks:
         if actual is None:
             status = "Unknown"
-        elif isinstance(expected, str) and expected.startswith("<"):
-            status = "✅ Good" if actual < 85 else "⚠️ High"
-        elif actual == expected:
-            status = "✅ Match"
+        elif compare_func(actual, expected):
+            status = "✅ Good"
         else:
             status = "⚠️ Drift"
         
         drift.append({
             "Setting": name,
-            "Expected": expected,
-            "Actual": actual,
+            "Expected": f"{expected}{unit}",
+            "Actual": f"{actual}{unit}" if unit else actual,
             "Status": status
         })
     
@@ -70,7 +65,7 @@ def generate_html_report(client_data, drift_results, output_path):
     th, td {{ border: 1px solid #ddd; padding: 12px; text-align: left; }}
     th {{ background: #0078D4; color: white; }}
     .drift {{ background: #fff3cd; }}
-    .match {{ background: #d4edda; }}
+    .good {{ background: #d4edda; }}
 </style>
 </head>
 <body>
@@ -82,7 +77,7 @@ def generate_html_report(client_data, drift_results, output_path):
         <tr><th>Setting</th><th>Expected</th><th>Actual</th><th>Status</th></tr>
 """
     for item in drift_results:
-        row_class = ' class="drift"' if "Drift" in item['Status'] or "High" in item['Status'] else ' class="match"'
+        row_class = ' class="drift"' if "Drift" in item['Status'] else ' class="good"'
         html += f"<tr{row_class}><td>{item['Setting']}</td><td>{item['Expected']}</td><td>{item['Actual']}</td><td>{item['Status']}</td></tr>"
     
     html += "</table></body></html>"
@@ -119,7 +114,6 @@ def main():
 
     print(f"✅ Drift report generated for {client_data['system']['hostname']}")
     print(f"   → {report_path}")
-    print("   Open the HTML file in your browser to view the report.")
 
 if __name__ == "__main__":
     main()
