@@ -16,7 +16,6 @@ def load_baseline():
     if baseline_path.exists():
         with open(baseline_path) as f:
             return json.load(f)
-    # Default baseline
     return {
         "power_plan": "Balanced",
         "firewall_enabled": True,
@@ -26,23 +25,24 @@ def load_baseline():
 
 def check_drift(client_data, baseline):
     drift = []
-    
-    # Example checks - expand as needed
-    client = client_data.get("system", {})
+    system = client_data.get("system", {})
     disk = client_data.get("disk", {})
     memory = client_data.get("memory", {})
     mecm = client_data.get("mecm", {})
-    
+
     checks = [
-        ("Power Plan", client.get("power_plan"), baseline.get("power_plan")),
-        ("Firewall Enabled", client.get("firewall_enabled"), baseline.get("firewall_enabled")),
-        ("Disk Free GB", disk.get("free_gb"), baseline.get("min_disk_gb")),
+        ("Power Plan", system.get("power_plan"), baseline.get("power_plan")),
+        ("Firewall Enabled", system.get("firewall_enabled"), baseline.get("firewall_enabled")),
+        ("Disk Free (GB)", disk.get("free_gb"), baseline.get("min_disk_gb")),
         ("MECM Client Installed", mecm.get("installed"), True),
+        ("Memory Usage %", memory.get("percent_used"), "< 85"),
     ]
-    
+
     for name, actual, expected in checks:
         if actual is None:
             status = "Unknown"
+        elif isinstance(expected, str) and expected.startswith("<"):
+            status = "✅ Good" if actual < 85 else "⚠️ High"
         elif actual == expected:
             status = "✅ Match"
         else:
@@ -82,7 +82,7 @@ def generate_html_report(client_data, drift_results, output_path):
         <tr><th>Setting</th><th>Expected</th><th>Actual</th><th>Status</th></tr>
 """
     for item in drift_results:
-        row_class = ' class="drift"' if "Drift" in item['Status'] else ' class="match"'
+        row_class = ' class="drift"' if "Drift" in item['Status'] or "High" in item['Status'] else ' class="match"'
         html += f"<tr{row_class}><td>{item['Setting']}</td><td>{item['Expected']}</td><td>{item['Actual']}</td><td>{item['Status']}</td></tr>"
     
     html += "</table></body></html>"
@@ -96,7 +96,6 @@ def main():
     parser.add_argument("--client", help="Path to specific client JSON file")
     args = parser.parse_args()
 
-    # Find client file
     if args.client:
         client_path = Path(args.client)
     else:
@@ -120,6 +119,7 @@ def main():
 
     print(f"✅ Drift report generated for {client_data['system']['hostname']}")
     print(f"   → {report_path}")
+    print("   Open the HTML file in your browser to view the report.")
 
 if __name__ == "__main__":
     main()
