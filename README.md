@@ -15,6 +15,16 @@ Built as a companion to my [`cross-platform-client-health`](https://github.com/M
 
 ---
 
+## Screenshots
+
+**HTML Report Example**  
+![HTML Drift Report](https://raw.githubusercontent.com/M-Endymion/mecm-drift-detector/main/screenshots/html-report.png)
+
+**Web Dashboard**  
+![Streamlit Dashboard](https://raw.githubusercontent.com/M-Endymion/mecm-drift-detector/main/screenshots/dashboard.png)
+
+---
+
 ## Features
 
 - Detects drift in key settings (Disk Space, Memory, MECM Client, etc.)
