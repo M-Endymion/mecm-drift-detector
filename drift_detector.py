@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-MECM Configuration Drift Detector - Enhanced Version
+MECM Configuration Drift Detector
+Author: Jason Ray (M-Endymion)
 """
 
 import json
@@ -15,6 +16,7 @@ def load_baseline():
     if baseline_path.exists():
         with open(baseline_path) as f:
             return json.load(f)
+    # Default baseline
     return {
         "min_disk_gb": 25,
         "max_memory_percent": 85,
@@ -30,13 +32,16 @@ def check_drift(client_data, baseline):
     mecm = client_data.get("mecm", {})
 
     checks = [
-        ("Disk Free Space", disk.get("free_gb"), baseline.get("min_disk_gb"), "GB", lambda a, e: a >= e),
-        ("Memory Usage", memory.get("percent_used"), baseline.get("max_memory_percent"), "%", lambda a, e: a <= e),
-        ("MECM Client", mecm.get("installed"), baseline.get("mecm_installed"), "", lambda a, e: a == e),
+        ("Disk Free Space (GB)", disk.get("free_gb"), baseline.get("min_disk_gb"), 
+         lambda a, e: a is not None and a >= e),
+        ("Memory Usage (%)", memory.get("percent_used"), baseline.get("max_memory_percent"), 
+         lambda a, e: a is not None and a <= e),
+        ("MECM Client Installed", mecm.get("installed"), baseline.get("mecm_installed"), 
+         lambda a, e: a == e),
     ]
 
-    for name, actual, expected, unit, compare_func in checks:
-        if actual is None:
+    for name, actual, expected, compare_func in checks:
+        if actual is None or expected is None:
             status = "Unknown"
         elif compare_func(actual, expected):
             status = "✅ Good"
@@ -45,8 +50,8 @@ def check_drift(client_data, baseline):
         
         drift.append({
             "Setting": name,
-            "Expected": f"{expected}{unit}",
-            "Actual": f"{actual}{unit}" if unit else actual,
+            "Expected": expected,
+            "Actual": actual,
             "Status": status
         })
     
@@ -114,6 +119,7 @@ def main():
 
     print(f"✅ Drift report generated for {client_data['system']['hostname']}")
     print(f"   → {report_path}")
+    print("   Open the HTML file in your browser.")
 
 if __name__ == "__main__":
     main()
