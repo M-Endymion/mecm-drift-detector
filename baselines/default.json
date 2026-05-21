@@ -1,0 +1,5 @@
+{
+  "power_plan": "Balanced",
+  "firewall_enabled": true,
+  "min_disk_gb": 25
+}
