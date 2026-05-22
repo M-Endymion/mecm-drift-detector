@@ -11,6 +11,7 @@ A practical tool to detect and report **configuration drift** between MECM/SCCM 
 Built as a companion to my [`cross-platform-client-health`](https://github.com/M-Endymion/cross-platform-client-health) and [`mecm-health-dashboard`](https://github.com/M-Endymion/mecm-health-dashboard) projects.
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
 
 ---
